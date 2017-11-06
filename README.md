@@ -14,33 +14,7 @@ How to setup:
 
 3. Add authentication middleware
    
-   app.Use(async (context, next) =>
-   {
-                if (string.IsNullOrWhiteSpace(context.Request.Headers["Authorization"]))
-                {
-                    if (context.Request.QueryString.HasValue)
-                    {
-                        // for JWT authentication
-                        var token = context.Request.QueryString.Value
-                            .Split('&')
-                            .SingleOrDefault(x => x.Contains("authorization"))?.Split('=')[1];
-                        if (!string.IsNullOrWhiteSpace(token))
-                        {
-                            context.Request.Headers.Add("Authorization", new[] { $"Bearer {token}" });
-                        }
-
-                        // Get user id from QueryString
-                        var userId = context.Request.QueryString.Value
-                            .Split('&')
-                            .SingleOrDefault(x => x.Contains("userId"))?.Split('=')[1];
-
-                        var claim = new System.Security.Claims.Claim("userId", userId);
-                        var claims = new List<System.Security.Claims.Claim> { claim };
-                        context.User.AddIdentity(new System.Security.Claims.ClaimsIdentity(claims));
-                    }
-                }
-                await next.Invoke();
-  });
+   Please reference WebStart.Startup.
 
 
 4. Add GetUserProfile delegate
