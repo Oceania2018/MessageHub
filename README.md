@@ -13,9 +13,9 @@ How to setup:
 
 
 3. Add authentication middleware
-
-app.Use(async (context, next) =>
-            {
+   
+   app.Use(async (context, next) =>
+   {
                 if (string.IsNullOrWhiteSpace(context.Request.Headers["Authorization"]))
                 {
                     if (context.Request.QueryString.HasValue)
@@ -40,7 +40,7 @@ app.Use(async (context, next) =>
                     }
                 }
                 await next.Invoke();
-            });
+  });
 
 
 4. Add GetUserProfile delegate
