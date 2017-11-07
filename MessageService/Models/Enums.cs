@@ -8,6 +8,8 @@ namespace MessageService.Models
     {
         SystemToAll = 1,
         SystemToChannel = 2,
-        UserToChannel = 3
+        UserToChannel = 3,
+        TypingIndicator = 5,
+        TypeStoppedIndicator = 6,
     }
 }

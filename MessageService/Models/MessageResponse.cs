@@ -9,5 +9,7 @@ namespace MessageService.Models
         public String ChannelId { get; set; }
         public MessageScope Scope { get; set; }
         public MessageContent Message { get; set; }
+        public User Sender { get; set; }
+        public DateTime Time { get; set; }
     }
 }

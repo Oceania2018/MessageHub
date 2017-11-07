@@ -9,12 +9,8 @@ namespace MessageService
 {
     public class MessageHubInitializer
     {
-        internal static Action<User> GetUserProfile;
-
-        public static void Init(Action<User> getUserProfile)
+        public static void Init()
         {
-            GetUserProfile = getUserProfile;
-            
             MessageDbContext dc = new MessageDbContext(new DbContextOptions<MessageDbContext>());
 
             // Add default public channel

@@ -10,10 +10,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MessageService;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace WebStarter
 {
-    public class Startup
+    public partial class Startup
     {
         public Startup(IConfiguration configuration)
         {
@@ -25,6 +27,7 @@ namespace WebStarter
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            ConfigureJwtAuthService(services);
             services.AddSignalR();
             services.AddMvc();
         }
@@ -48,34 +51,22 @@ namespace WebStarter
                         // for JWT authentication
                         var token = context.Request.QueryString.Value
                             .Split('&')
-                            .SingleOrDefault(x => x.Contains("authorization"))?.Split('=')[1];
+                            .SingleOrDefault(x => x.Contains("token"))?.Split('=')[1];
                         if (!string.IsNullOrWhiteSpace(token))
                         {
                             context.Request.Headers.Add("Authorization", new[] { $"Bearer {token}" });
                         }
-
-                        // Get user id from QueryString
-                        var userId = context.Request.QueryString.Value
-                            .Split('&')
-                            .SingleOrDefault(x => x.Contains("userId"))?.Split('=')[1];
-
-                        var claim = new System.Security.Claims.Claim("userId", userId);
-                        var claims = new List<System.Security.Claims.Claim> { claim };
-                        context.User.AddIdentity(new System.Security.Claims.ClaimsIdentity(claims));
                     }
                 }
                 await next.Invoke();
             });
+            app.UseAuthentication();
 
             app.UseSignalR(config => {
                 config.MapHub<MessageHub>(String.Empty);
-                MessageHubInitializer.Init((user) => {
-                    user.Name = "haiping";
-                    user.FirstName = "Haiping";
-                    user.LastName = "Chen";
-                });
+                MessageHubInitializer.Init();
             });
-
+            
             app.UseMvc();
         }
     }

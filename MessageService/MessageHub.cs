@@ -12,50 +12,56 @@ using System.Threading.Tasks;
 
 namespace MessageService
 {
+    [Authorize]
     public class MessageHub : Hub
     {
         private MessageDbContext dc = new MessageDbContext(new DbContextOptions<MessageDbContext>());
 
-        private string GetUserId()
+        private User GetCurrentUser()
         {
-            string userId = Context.User.Claims
-                .First(x => x.Type.Equals("userId", StringComparison.CurrentCultureIgnoreCase))
-                .Value;
-            
-            return userId;
+            var claims = Context.User.Claims.Select(x => new { Type = x.Type.ToLower(), x.Value }).ToList();
+
+            return new User
+            {
+                Id = claims.First(x => x.Type == "userid").Value,
+                FirstName = claims.First(x => x.Type == "firstname").Value,
+                LastName = claims.First(x => x.Type == "lastname").Value,
+                Email = claims.First(x => x.Type == "email").Value
+            };
         }
 
         public override Task OnConnectedAsync()
         {
-            string currentUserId = GetUserId();
-
-            // create user profile if not exists
-            var user = dc.Users.Find(currentUserId);
-            if (user == null)
-            {
-                user = new User { Id = currentUserId };
-                MessageHubInitializer.GetUserProfile(user);
-                dc.Users.Add(user);
-                dc.SaveChanges();
-            }
+            var currentUser = GetCurrentUser();
 
             dc.Connections.Add(new Connection {
                 Id = Context.ConnectionId,
-                CreatedUserId = currentUserId
+                CreatedUserId = currentUser.Id
             });
 
             // add to public channel
-            dc.ChannelUsers.Add(new ChannelUser {
-                ChannelId = Constants.PUBLIC_CHANNEL_ID,
-                UserId = currentUserId
-            });
+            if(!dc.ChannelUsers.Any(x => x.ChannelId == Constants.PUBLIC_CHANNEL_ID && x.UserId == currentUser.Id))
+            {
+                dc.ChannelUsers.Add(new ChannelUser
+                {
+                    ChannelId = Constants.PUBLIC_CHANNEL_ID,
+                    UserId = currentUser.Id
+                });
+            }
+
+            var userEntity = dc.Users.Find(currentUser.Id);
+            if (userEntity == null)
+            {
+                dc.Users.Add(currentUser);
+            }
 
             dc.SaveChanges();
 
             SendToChannel(new MessageResponse {
                 ChannelId = Constants.PUBLIC_CHANNEL_ID,
                 Scope = MessageScope.SystemToChannel,
-                Message = new MessageContent { Text = $"{currentUserId} joined this conversation." }
+                Message = new MessageContent { Text = $"{currentUser.FullName} joined this conversation." },
+                Sender = new User { }
             });
 
             return base.OnConnectedAsync();
@@ -68,15 +74,17 @@ namespace MessageService
             dc.SaveChanges();
 
             // remove from public channel
-            var userInPublicChannel = dc.ChannelUsers.FirstOrDefault(x => x.ChannelId == Constants.PUBLIC_CHANNEL_ID && x.UserId == connection.CreatedUserId);
+            /*var userInPublicChannel = dc.ChannelUsers.FirstOrDefault(x => x.ChannelId == Constants.PUBLIC_CHANNEL_ID && x.UserId == connection.CreatedUserId);
             dc.ChannelUsers.Remove(userInPublicChannel);
-            dc.SaveChanges();
+            dc.SaveChanges();*/
+
+            var currentUser = dc.Users.Find(connection.CreatedUserId);
 
             SendToChannel(new MessageResponse
             {
                 ChannelId = Constants.PUBLIC_CHANNEL_ID,
                 Scope = MessageScope.SystemToChannel,
-                Message = new MessageContent { Text = $"{connection.CreatedUserId} left this conversation." }
+                Message = new MessageContent { Text = $"{currentUser.FullName} left this conversation." }
             });
 
             return base.OnDisconnectedAsync(exception);
@@ -102,10 +110,64 @@ namespace MessageService
 
         public Task Received(MessageRequest request)
         {
-            SendToChannel(new MessageResponse {
+            if(String.IsNullOrEmpty(request.ChannelId))
+            {
+                request.ChannelId = Constants.PUBLIC_CHANNEL_ID;
+            }
+
+            SendToChannel(new MessageResponse
+            {
                 ChannelId = request.ChannelId,
                 Message = request.Message,
-                Scope = MessageScope.UserToChannel
+                Scope = MessageScope.UserToChannel,
+                Sender = GetCurrentUser(),
+                Time = DateTime.UtcNow
+            });
+
+            return Task.CompletedTask;
+        }
+
+        public Task Typing(MessageRequest request)
+        {
+            if (String.IsNullOrEmpty(request.ChannelId))
+            {
+                request.ChannelId = Constants.PUBLIC_CHANNEL_ID;
+            }
+
+            var currentUser = GetCurrentUser();
+
+            request.Message = new MessageContent { Text = $"{currentUser.FullName} is typing..."};
+
+            SendToChannel(new MessageResponse
+            {
+                ChannelId = request.ChannelId,
+                Message = request.Message,
+                Scope = MessageScope.TypingIndicator,
+                Sender = currentUser,
+                Time = DateTime.UtcNow
+            });
+
+            return Task.CompletedTask;
+        }
+
+        public Task Typed(MessageRequest request)
+        {
+            if (String.IsNullOrEmpty(request.ChannelId))
+            {
+                request.ChannelId = Constants.PUBLIC_CHANNEL_ID;
+            }
+
+            var currentUser = GetCurrentUser();
+
+            request.Message = new MessageContent { Text = $"{currentUser.FullName} finished typing." };
+
+            SendToChannel(new MessageResponse
+            {
+                ChannelId = request.ChannelId,
+                Message = request.Message,
+                Scope = MessageScope.TypeStoppedIndicator,
+                Sender = currentUser,
+                Time = DateTime.UtcNow
             });
 
             return Task.CompletedTask;
