@@ -73,11 +73,6 @@ namespace MessageService
             dc.Connections.Remove(connection);
             dc.SaveChanges();
 
-            // remove from public channel
-            /*var userInPublicChannel = dc.ChannelUsers.FirstOrDefault(x => x.ChannelId == Constants.PUBLIC_CHANNEL_ID && x.UserId == connection.CreatedUserId);
-            dc.ChannelUsers.Remove(userInPublicChannel);
-            dc.SaveChanges();*/
-
             var currentUser = dc.Users.Find(connection.CreatedUserId);
 
             SendToChannel(new MessageResponse
@@ -97,10 +92,7 @@ namespace MessageService
                                where cu.ChannelId == response.ChannelId
                                select conn.Id).ToList();
 
-            if (response.Scope == MessageScope.UserToChannel)
-            {
-                connections.Remove(Context.ConnectionId);
-            }
+            connections.Remove(Context.ConnectionId);
 
             connections.ForEach(connectionId =>
             {
@@ -169,6 +161,15 @@ namespace MessageService
                 Sender = currentUser,
                 Time = DateTime.UtcNow
             });
+
+            return Task.CompletedTask;
+        }
+
+        public Task OnlineUsers()
+        {
+            var connections = (from conn in dc.Connections
+                               join u in dc.Users on conn.CreatedUserId equals u.Id
+                               select new { u.Id, u.FirstName, u.LastName, u.FullName }).Distinct().ToList();
 
             return Task.CompletedTask;
         }
