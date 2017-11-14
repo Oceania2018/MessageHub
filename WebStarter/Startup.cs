@@ -64,7 +64,7 @@ namespace WebStarter
 
             app.UseSignalR(config => {
                 config.MapHub<MessageHub>(String.Empty);
-                MessageHubInitializer.Init();
+                MessageHubInitializer.Init(app.ApplicationServices);
             });
             
             app.UseMvc();

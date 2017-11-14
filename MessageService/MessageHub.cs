@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -59,8 +60,10 @@ namespace MessageService
 
             SendToChannel(new MessageResponse {
                 ChannelId = Constants.PUBLIC_CHANNEL_ID,
-                Scope = MessageScope.SystemToChannel,
-                Message = new MessageContent { Text = $"{currentUser.FullName} joined this conversation." },
+                ChannelTitle = "Public Channel",
+                Target = MessageTarget.Channel,
+                Command = MessageCommand.UserJoinedChannel,
+                Message = new MessageContent { Text = $"{currentUser.FullName} joined this channel." },
                 Sender = new User { }
             });
 
@@ -83,8 +86,9 @@ namespace MessageService
             SendToChannel(new MessageResponse
             {
                 ChannelId = Constants.PUBLIC_CHANNEL_ID,
-                Scope = MessageScope.SystemToChannel,
-                Message = new MessageContent { Text = $"{currentUser.FullName} left this conversation." }
+                Target = MessageTarget.Channel,
+                Command = MessageCommand.UserLeftChannel,
+                Message = new MessageContent { Text = $"{currentUser.FullName} left this channel." }
             });
 
             return base.OnDisconnectedAsync(exception);
@@ -97,13 +101,15 @@ namespace MessageService
                                where cu.ChannelId == response.ChannelId
                                select conn.Id).ToList();
 
-            if (response.Scope == MessageScope.UserToChannel)
+            if (response.Target == MessageTarget.User)
             {
                 connections.Remove(Context.ConnectionId);
             }
 
             connections.ForEach(connectionId =>
             {
+                response.Sender = GetCurrentUser();
+                response.Time = DateTime.UtcNow;
                 Clients.Client(connectionId).InvokeAsync("received", response);
             });
         }
@@ -119,9 +125,57 @@ namespace MessageService
             {
                 ChannelId = request.ChannelId,
                 Message = request.Message,
-                Scope = MessageScope.UserToChannel,
-                Sender = GetCurrentUser(),
-                Time = DateTime.UtcNow
+                Target = MessageTarget.User
+            });
+
+            return Task.CompletedTask;
+        }
+
+        public Task InitChannel(string userId)
+        {
+            var user = GetCurrentUser();
+            var user2 = dc.Users.Find(userId);
+
+            var channel = (from cu1 in dc.ChannelUsers
+                          join cu2 in dc.ChannelUsers on cu1.ChannelId equals cu2.ChannelId
+                          join c in dc.Channels on cu1.ChannelId equals c.Id
+                          where cu1.UserId == userId && cu2.UserId == user.Id && c.Limit == 2
+                          select c).FirstOrDefault();
+
+            if(channel == null)
+            {
+                channel = new Channel { Id = Guid.NewGuid().ToString(), Title = $"{user.FullName}, {user2.FullName}", Limit = 2 };
+                dc.Channels.Add(channel);
+                dc.ChannelUsers.Add(new ChannelUser { ChannelId = channel.Id, UserId = userId, CreatedTime = DateTime.UtcNow, CreatedUserId = user.Id });
+                dc.ChannelUsers.Add(new ChannelUser { ChannelId = channel.Id, UserId = user.Id, CreatedTime = DateTime.UtcNow, CreatedUserId = user.Id });
+                dc.SaveChanges();
+            }
+
+            SendToChannel(new MessageResponse
+            {
+                ChannelId = channel.Id,
+                ChannelTitle = channel.Title,
+                Target = MessageTarget.Channel,
+                Command = MessageCommand.ChannelCreated,
+                Message = new MessageContent { Text = $"{user.FullName} started a session with you." }
+            });
+
+            return Task.CompletedTask;
+        }
+
+        public Task GetChannels()
+        {
+            var channels = (from uc in dc.ChannelUsers
+                           join c in dc.Channels on uc.ChannelId equals c.Id
+                           where uc.UserId == GetCurrentUser().Id
+                           select c).ToList();
+
+            Clients.Client(Context.ConnectionId).InvokeAsync("received", new MessageResponse
+            {
+                Target = MessageTarget.User,
+                Command = MessageCommand.RetrieveAllChannelsForCurrent,
+                Time = DateTime.UtcNow,
+                Data = channels
             });
 
             return Task.CompletedTask;
@@ -142,9 +196,7 @@ namespace MessageService
             {
                 ChannelId = request.ChannelId,
                 Message = request.Message,
-                Scope = MessageScope.TypingIndicator,
-                Sender = currentUser,
-                Time = DateTime.UtcNow
+                Target = MessageTarget.Channel
             });
 
             return Task.CompletedTask;
@@ -165,9 +217,7 @@ namespace MessageService
             {
                 ChannelId = request.ChannelId,
                 Message = request.Message,
-                Scope = MessageScope.TypeStoppedIndicator,
-                Sender = currentUser,
-                Time = DateTime.UtcNow
+                Target = MessageTarget.Channel
             });
 
             return Task.CompletedTask;

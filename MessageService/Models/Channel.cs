@@ -9,5 +9,9 @@ namespace MessageService.Models
     {
         [MaxLength(64)]
         public String Title { get; set; }
+        /// <summary>
+        /// Max paticipates
+        /// </summary>
+        public Int16 Limit { get; set; }
     }
 }

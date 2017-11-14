@@ -4,12 +4,33 @@ using System.Text;
 
 namespace MessageService.Models
 {
-    public enum MessageScope
+    public enum MessageTarget
     {
-        SystemToAll = 1,
-        SystemToChannel = 2,
-        UserToChannel = 3,
-        TypingIndicator = 5,
-        TypeStoppedIndicator = 6,
+        System = 1,
+        Channel = 2, 
+        User = 3,
+
+        Page = 11,
+        Block = 12,
+        View = 13,
+        Entity = 14
+    }
+
+    public enum MessageCommand
+    {
+        UserConnected = 1,
+        UserDisconnected = 2,
+
+        UserJoinedChannel = 5,
+        UserLeftChannel = 6,
+        UserKickedOutFromChannel = 7,
+
+        ChannelCreated = 11,
+        ChannelRenamed = 12,
+        ChannelDeleted = 13,
+        RetrieveAllChannelsForCurrent = 14,
+
+        UserTypingStarted = 21,
+        UserTypingEnded = 22,
     }
 }

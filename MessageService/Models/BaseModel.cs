@@ -6,12 +6,16 @@ using System.Text;
 
 namespace MessageService.Models
 {
-    public abstract class BaseModel
+    public abstract class RootModel
     {
         [Key]
         [StringLength(36)]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public String Id { get; set; }
+    }
+
+    public abstract class BaseModel : RootModel
+    {
         [Required]
         public DateTime CreatedTime { get; set; }
         [Required]
