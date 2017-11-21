@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
 namespace MessageService.Models
@@ -13,5 +14,7 @@ namespace MessageService.Models
         /// Max paticipates
         /// </summary>
         public Int16 Limit { get; set; }
+        [NotMapped]
+        public IEnumerable<User> Participators { get; set; }
     }
 }

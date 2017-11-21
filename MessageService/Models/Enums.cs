@@ -4,16 +4,11 @@ using System.Text;
 
 namespace MessageService.Models
 {
-    public enum MessageTarget
+    public enum MessageIndividual
     {
         System = 1,
-        Channel = 2, 
-        User = 3,
-
-        Page = 11,
-        Block = 12,
-        View = 13,
-        Entity = 14
+        Channel = 2,
+        User = 3
     }
 
     public enum MessageCommand
@@ -25,12 +20,12 @@ namespace MessageService.Models
         UserLeftChannel = 6,
         UserKickedOutFromChannel = 7,
 
-        ChannelCreated = 11,
+        ChannelInitialized = 11,
         ChannelRenamed = 12,
         ChannelDeleted = 13,
         RetrieveAllChannelsForCurrent = 14,
 
-        UserTypingStarted = 21,
-        UserTypingEnded = 22,
+        UserTypingStart = 21,
+        UserTypingEnd = 22,
     }
 }

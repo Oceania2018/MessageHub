@@ -3,7 +3,8 @@
 ################################################################################
 
 /.vs
-/MessageService/bin/Debug/netcoreapp2.0
+/MessageService/bin
 /MessageService/obj
-/WebStarter/bin/Debug/netcoreapp2.0
+/WebStarter/bin
 /WebStarter/obj
+/packages
