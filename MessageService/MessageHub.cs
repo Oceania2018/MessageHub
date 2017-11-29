@@ -158,7 +158,7 @@ namespace MessageService
 
             if (channel == null)
             {
-                channel = new Channel { Id = Guid.NewGuid().ToString(), Title = $"{user.FullName}, {userTarget?.FullName}", Limit = 2 };
+                channel = new Channel { Id = Guid.NewGuid().ToString(), Title = $"{user.FirstName}, {userTarget?.FirstName}", Limit = 2 };
                 dc.Channels.Add(channel);
                 dc.ChannelUsers.Add(new ChannelUser { ChannelId = channel.Id, UserId = userId, CreatedTime = DateTime.UtcNow, CreatedUserId = user.Id });
                 dc.ChannelUsers.Add(new ChannelUser { ChannelId = channel.Id, UserId = user.Id, CreatedTime = DateTime.UtcNow, CreatedUserId = user.Id });
