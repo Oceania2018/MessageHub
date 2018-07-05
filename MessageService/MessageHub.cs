@@ -123,7 +123,7 @@ namespace MessageService
             {
                 response.Sender = GetCurrentUser();
                 response.Time = DateTime.UtcNow;
-                Clients.Client(connection.Id).InvokeAsync("received", response);
+                Clients.Client(connection.Id).SendAsync("received", response);
             });
         }
 
@@ -184,7 +184,7 @@ namespace MessageService
             {
                 response.Sender = GetCurrentUser();
                 response.Time = DateTime.UtcNow;
-                Clients.Client(connection.Id).InvokeAsync("received", response);
+                Clients.Client(connection.Id).SendAsync("received", response);
             });
 
             return Task.CompletedTask;
@@ -202,7 +202,7 @@ namespace MessageService
                 channel.Title = "Public Channel";
             });
 
-            Clients.Client(Context.ConnectionId).InvokeAsync("received", new MessageResponse
+            Clients.Client(Context.ConnectionId).SendAsync("received", new MessageResponse
             {
                 Origin = MessageIndividual.System,
                 Target = MessageIndividual.User,

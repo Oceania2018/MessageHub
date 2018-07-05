@@ -15,7 +15,12 @@ namespace MessageService
     public class MessageController : ControllerBase
     {
         private MessageDbContext dc = new MessageDbContext(new DbContextOptions<MessageDbContext>());
-        private HubContext<MessageHub> hub = MessageHubInitializer.ServiceProvider.GetService(typeof(IHubContext<MessageHub>)) as HubContext<MessageHub>;
+        private readonly IHubContext<MessageHub> hub;
+
+        public MessageController(IHubContext<MessageHub> hubContext)
+        {
+            hub = hubContext;
+        }
 
         /// <summary>
         /// Send message to recipient
@@ -42,7 +47,7 @@ namespace MessageService
 
             connections.ForEach(connection =>
             {
-                hub.Client(connection).InvokeAsync("received", response);
+                hub.Clients.Client(connection).SendAsync("received", response);
             });
 
             return true;
